@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>tensorCFD Uninstaller</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, Arial; margin: 20px; }
+    h1 { margin: 0 0 10px; }
+    button { padding: 10px 16px; font-size: 14px; }
+    .danger { background: #b22222; color: #fff; border: none; border-radius: 6px; }
+    #steps { margin-top: 12px; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
+    .step { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #eee; }
+    .step:last-child { border-bottom: none; }
+    .status { font-weight: 600; }
+    .running { color: #b8860b; }
+    .done { color: #2e8b57; }
+    .error { color: #b22222; }
+    #log { width: 100%; height: 300px; margin-top: 12px; padding: 10px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; border: 1px solid #ccc; border-radius: 8px; background: #fafafa; white-space: pre-wrap; overflow: auto; }
+    .hint { color: #555; margin-top: 8px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>tensorCFD Uninstaller</h1>
+  <p>This will remove: WSL Ubuntu (and OpenFOAM), ParaView 6.0.1, Blender 4.5.3, and tensorHVAC-Pro-2025 (plus its desktop shortcut).</p>
+  <button id="startBtn" class="danger">Uninstall</button>
+
+  <div id="steps">
+    <div class="step"><span>#1 WSL/Ubuntu (and OpenFOAM)</span><span id="s-1" class="status">pending</span></div>
+    <div class="step"><span>#2 ParaView</span><span id="s-2" class="status">pending</span></div>
+    <div class="step"><span>#3 Blender</span><span id="s-3" class="status">pending</span></div>
+    <div class="step"><span>#4 tensorHVAC-Pro-2025 + shortcut</span><span id="s-4" class="status">pending</span></div>
+  </div>
+
+  <div class="hint">
+    Tip: Run as Administrator. Close any running instances (WSL/ParaView/Blender/tensorHVAC) before uninstalling.
+  </div>
+
+  <pre id="log"></pre>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

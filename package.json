@@ -1,0 +1,36 @@
+{
+  "name": "tensorHVAC-Pro-2025-uninstaller",
+  "version": "1.0.0",
+  "description": "Uninstaller for WSL Ubuntu/OpenFOAM, ParaView, Blender, and tensorHVAC-Pro-2025",
+  "main": "main.js",
+  "author": "Caesar Wiratama",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64 --publish never"
+  },
+  "build": {
+    "appId": "com.tensorcfd.uninstaller",
+    "productName": "tensorHVAC-Pro-2025 Uninstaller",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer.js",
+      "index.html",
+      "assets/**"
+    ],
+    "win": {
+      "icon": "assets/app.ico",
+      "target": "nsis"
+    },
+    "asar": true
+  },
+  "devDependencies": {
+    "electron": "^31.3.0",
+    "electron-builder": "^24.13.3"
+  }
+}
