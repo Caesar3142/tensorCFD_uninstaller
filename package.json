@@ -1,7 +1,7 @@
 {
   "name": "tensorHVAC-Pro-2025-uninstaller",
   "version": "1.0.0",
-  "description": "Uninstaller for WSL Ubuntu/OpenFOAM, ParaView, Blender, and tensorHVAC-Pro-2025",
+  "description": "Uninstaller for WSL Ubuntu/OpenFOAM, ParaView, Blender, and tensorHVAC-Pro-Setup-2025",
   "main": "main.js",
   "author": "Caesar Wiratama",
   "license": "MIT",
