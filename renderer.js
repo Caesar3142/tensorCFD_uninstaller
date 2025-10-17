@@ -5,7 +5,9 @@ const titleToId = {
   '#1 Uninstall WSL/Ubuntu (and OpenFOAM)': 's-1',
   '#2 Remove ParaView': 's-2',
   '#3 Remove Blender': 's-3',
-  '#4 Remove tensorHVAC-Pro-2025 + shortcut': 's-4'
+  '#4 Remove tensorHVAC-Pro-2025 + shortcut': 's-4',
+  '#5 Uninstall Tensor HVAC Licensing': 's-5',
+  '#6 Remove Licensing leftovers + shortcuts': 's-6'
 };
 
 function setStatus(id, status) {

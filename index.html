@@ -21,7 +21,10 @@
 </head>
 <body>
   <h1>tensorHVAC-Pro-2025 Uninstaller</h1>
-  <p>This will remove: WSL Ubuntu (and OpenFOAM), ParaView 6.0.1, Blender 4.5.3, and tensorHVAC-Pro-2025 (plus its desktop shortcut).</p>
+  <p>
+    This will remove: WSL Ubuntu (and OpenFOAM), ParaView 6.0.1, Blender 4.5.3,
+    tensorHVAC-Pro-2025 (plus its desktop shortcut), and <strong>Tensor HVAC Licensing 1.0.0</strong>.
+  </p>
   <button id="startBtn" class="danger">Uninstall</button>
 
   <div id="steps">
@@ -29,10 +32,12 @@
     <div class="step"><span>#2 ParaView</span><span id="s-2" class="status">pending</span></div>
     <div class="step"><span>#3 Blender</span><span id="s-3" class="status">pending</span></div>
     <div class="step"><span>#4 tensorHVAC-Pro-2025 + shortcut</span><span id="s-4" class="status">pending</span></div>
+    <div class="step"><span>#5 Uninstall Tensor HVAC Licensing</span><span id="s-5" class="status">pending</span></div>
+    <div class="step"><span>#6 Remove Licensing leftovers + shortcuts</span><span id="s-6" class="status">pending</span></div>
   </div>
 
   <div class="hint">
-    Tip: Run as Administrator. Close any running instances (WSL/ParaView/Blender/tensorHVAC) before uninstalling.
+    Tip: Run as Administrator. Close any running instances (WSL/ParaView/Blender/tensorHVAC/Licensing) before uninstalling.
   </div>
 
   <pre id="log"></pre>
