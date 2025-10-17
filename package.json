@@ -11,7 +11,7 @@
   },
   "build": {
     "appId": "com.tensorcfd.uninstaller",
-    "productName": "tensorHVAC-Pro-2025 Uninstaller",
+    "productName": "Uninstaller tensorHVAC-Pro-2025",
     "directories": {
       "output": "dist",
       "buildResources": "assets"
