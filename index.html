@@ -17,6 +17,12 @@
     .error { color: #b22222; }
     #log { width: 100%; height: 300px; margin-top: 12px; padding: 10px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; border: 1px solid #ccc; border-radius: 8px; background: #fafafa; white-space: pre-wrap; overflow: auto; }
     .hint { color: #555; margin-top: 8px; font-size: 12px; }
+    fieldset { margin-top: 12px; border: 1px solid #ddd; border-radius: 8px; padding: 10px; }
+    legend { font-weight: 600; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .controls { display: flex; gap: 8px; margin-top: 8px; }
+    .secondary { padding: 6px 10px; font-size: 13px; }
+    .muted { color: #555; font-size: 12px; }
   </style>
 </head>
 <body>
@@ -25,6 +31,36 @@
     This will remove: WSL Ubuntu (and OpenFOAM), ParaView 6.0.1, Blender 4.5.3,
     tensorHVAC-Pro-2025 (plus its desktop shortcut), and <strong>Tensor HVAC Licensing 1.0.0</strong>.
   </p>
+
+  <!-- Component Checklist -->
+  <fieldset>
+    <legend>Choose components to uninstall</legend>
+    <div class="row">
+      <label><input type="checkbox" id="cb-wsl" checked> #1 WSL/Ubuntu (and OpenFOAM)</label>
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="cb-paraview" checked> #2 ParaView</label>
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="cb-blender" checked> #3 Blender</label>
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="cb-app" checked> #4 tensorHVAC-Pro-2025 + desktop items</label>
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="cb-licensing" checked> #5 Uninstall Tensor HVAC Licensing</label>
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="cb-leftovers" checked> #6 Remove Licensing leftovers + shortcuts</label>
+    </div>
+
+    <div class="controls">
+      <button id="checkAll" class="secondary" type="button">Select All</button>
+      <button id="uncheckAll" class="secondary" type="button">Select None</button>
+      <span class="muted">Tip: uncheck items you want to keep.</span>
+    </div>
+  </fieldset>
+
   <button id="startBtn" class="danger">Uninstall</button>
 
   <div id="steps">

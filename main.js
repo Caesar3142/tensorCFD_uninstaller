@@ -9,7 +9,7 @@ function createWindow() {
     width: 900,
     height: 640,
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
-    title: "tensorCFD Uninstaller"
+    title: "tensorHVAC-2025.1.2 Uninstaller"
   });
   win.loadFile('index.html');
 }
@@ -57,12 +57,10 @@ function runCmd(title, command, shell = true) {
 /**
  * Build a robust PowerShell that:
  * - Searches both 64-bit and 32-bit uninstall registry hives.
- * - Filters entries whose DisplayName starts with "Tensor HVAC Licensing".
+ * - Filters entries whose DisplayName starts with "Tensor HVAC Licensing" or Launcher.
  * - Executes UninstallString elevated and silently if possible.
- *   - Adds /quiet for msiexec, or /S for typical EXE installers if not present.
  */
 function getLicensingUninstallPS() {
-  // The script writes progress to stdout; any failures are treated as warnings by runCmd wrapper.
   return `
 $ErrorActionPreference = 'SilentlyContinue'
 $paths = @(
@@ -70,11 +68,11 @@ $paths = @(
   'HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*'
 )
 $apps = Get-ItemProperty -Path $paths -ErrorAction SilentlyContinue | Where-Object {
-  $_.DisplayName -like 'Tensor HVAC Licensing*'
+  $_.DisplayName -like 'Tensor HVAC Licensing*' -or $_.DisplayName -like 'Launcher tensorHVAC-Pro*'
 }
 
 if (-not $apps) {
-  Write-Output 'No "Tensor HVAC Licensing" uninstall entries found.'
+  Write-Output 'No matching Tensor HVAC Licensing uninstall entries found.'
   exit 0
 }
 
@@ -84,24 +82,16 @@ foreach ($a in $apps) {
   if (-not $uninst) { Write-Output "No UninstallString for $name"; continue }
 
   Write-Output "Found uninstall for: $name"
-  # Normalize
   if ($uninst -match 'msiexec(\\.exe)?\\s*/I|msiexec(\\.exe)?\\s*/X|msiexec(\\.exe)?\\s*/package|msiexec(\\.exe)?\\s*/product') {
-    # Ensure it's an uninstall; add /X if not present, then /quiet if missing.
     if ($uninst -notmatch '/X') { $uninst = $uninst -replace '/I','/X' }
     if ($uninst -notmatch '/quiet' -and $uninst -notmatch '/qn') { $uninst = "$uninst /quiet" }
     Start-Process -FilePath "cmd.exe" -ArgumentList "/c $uninst" -Verb RunAs -Wait
   } else {
-    # Split EXE and ARGS if quoted
     if ($uninst -match '^\\"([^\\"]+)\\"(.*)$') {
-      $exe = $Matches[1]
-      $args = $Matches[2].Trim()
+      $exe = $Matches[1]; $args = $Matches[2].Trim()
     } elseif ($uninst -match '^([^\\s]+)\\s*(.*)$') {
-      $exe = $Matches[1]
-      $args = $Matches[2].Trim()
-    } else {
-      $exe = $uninst
-      $args = ''
-    }
+      $exe = $Matches[1]; $args = $Matches[2].Trim()
+    } else { $exe = $uninst; $args = '' }
     if ($args -notmatch '/S' -and $args -notmatch '/silent' -and $args -notmatch '/quiet') {
       $args = ($args + ' /S').Trim()
     }
@@ -111,8 +101,9 @@ foreach ($a in $apps) {
 `;
 }
 
-ipcMain.handle('start-uninstall', async (_e, { confirm }) => {
-  if (!confirm) {
+ipcMain.handle('start-uninstall', async (_e, opts = {}) => {
+  // Show confirm dialog unless caller sets confirm === true
+  if (!opts.confirm) {
     const res = dialog.showMessageBoxSync(win, {
       type: 'warning',
       buttons: ['Cancel', 'Uninstall'],
@@ -125,33 +116,68 @@ ipcMain.handle('start-uninstall', async (_e, { confirm }) => {
     if (res !== 1) return { ok: false, canceled: true };
   }
 
+  // Backwards compatible defaults: if no selections are passed, uninstall everything
+  const selections = {
+    wsl: true,
+    paraview: true,
+    blender: true,
+    app: true,
+    licensing: true,
+    leftovers: true,
+    ...(opts.selections || {})
+  };
+
+  // Log summary
+  sendLog('--- Uninstall Selection Summary ---\n');
+  sendLog(`WSL/Ubuntu (#1): ${selections.wsl ? 'ON' : 'OFF'}\n`);
+  sendLog(`ParaView (#2):    ${selections.paraview ? 'ON' : 'OFF'}\n`);
+  sendLog(`Blender (#3):     ${selections.blender ? 'ON' : 'OFF'}\n`);
+  sendLog(`App/Shortcut (#4):${selections.app ? 'ON' : 'OFF'}\n`);
+  sendLog(`Licensing (#5):   ${selections.licensing ? 'ON' : 'OFF'}\n`);
+  sendLog(`Leftovers (#6):   ${selections.leftovers ? 'ON' : 'OFF'}\n`);
+  sendLog('-----------------------------------\n\n');
+
   const licensingPS = getLicensingUninstallPS();
-  const steps = [
-    {
+
+  // Build only the selected steps
+  const steps = [];
+  if (selections.wsl) {
+    steps.push({
       title: '#1 Uninstall WSL/Ubuntu (and OpenFOAM)',
       cmd: `wsl --terminate Ubuntu & wsl --unregister Ubuntu & rmdir /s /q C:\\WSL\\Ubuntu 2>nul`
-    },
-    {
+    });
+  }
+  if (selections.paraview) {
+    steps.push({
       title: '#2 Remove ParaView',
       cmd: `rmdir /s /q "C:\\tensorCFD\\tensorHVAC-Pro-2025\\ParaView-6.0.1-Windows-Python3.12-msvc2017-AMD64" 2>nul & del /q paraview.zip 2>nul`
-    },
-    {
+    });
+  }
+  if (selections.blender) {
+    steps.push({
       title: '#3 Remove Blender',
       cmd: `rmdir /s /q "C:\\tensorCFD\\tensorHVAC-Pro-2025\\blender-4.5.3-windows-x64" 2>nul & del /q blender.zip 2>nul`
-    },
-    {
+    });
+  }
+  if (selections.app) {
+    steps.push({
       title: '#4 Remove tensorHVAC-Pro-2025 + shortcut',
-      cmd: `del /q "C:\\tensorCFD\\tensorHVAC-Pro-2025\\tensorHVAC-Pro-2025.exe" 2>nul & del /q "%USERPROFILE%\\Desktop\\*tensorHVAC*2025*.lnk" 2>nul`
-    },
-    {
+      // Also remove the new launcher explicitly, in addition to the wildcard
+      cmd: `del /q "C:\\tensorCFD\\tensorHVAC-Pro-2025\\tensorHVAC-Pro-2025.exe" 2>nul & del /q "%USERPROFILE%\\Desktop\\*tensorHVAC*2025*.lnk" 2>nul & del /q "%USERPROFILE%\\Desktop\\tensorHVAC-2025-Launcher.lnk" 2>nul`
+    });
+  }
+  if (selections.licensing) {
+    steps.push({
       title: '#5 Uninstall Tensor HVAC Licensing',
       cmd: `powershell -NoProfile -ExecutionPolicy Bypass -Command "${licensingPS.replace(/"/g, '\\"')}"`
-    },
-    {
+    });
+  }
+  if (selections.leftovers) {
+    steps.push({
       title: '#6 Remove Licensing leftovers + shortcuts',
-      cmd: `rmdir /s /q "C:\\tensorCFD\\Licensing" 2>nul & del /q "%USERPROFILE%\\Desktop\\*Tensor*HVAC*Licens*.lnk" 2>nul`
-    }
-  ];
+      cmd: `rmdir /s /q "C:\\tensorCFD\\tensorHVAC-Pro-2025" 2>nul & del /q "%USERPROFILE%\\Desktop\\*Tensor*HVAC*Licens*.lnk" 2>nul & del /q "%USERPROFILE%\\Desktop\\tensorHVAC-2025-Launcher.lnk" 2>nul`
+    });
+  }
 
   try {
     sendLog('Starting uninstall...\n\n');

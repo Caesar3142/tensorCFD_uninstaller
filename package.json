@@ -1,6 +1,6 @@
 {
-  "name": "tensorHVAC-Pro-2025-uninstaller",
-  "version": "1.0.0",
+  "name": "Uninstaller_tensorHVAC-Pro",
+  "version": "2025.1.2",
   "description": "Uninstaller for WSL Ubuntu/OpenFOAM, ParaView, Blender, and tensorHVAC-Pro-Setup-2025",
   "main": "main.js",
   "author": "Caesar Wiratama",
@@ -11,7 +11,7 @@
   },
   "build": {
     "appId": "com.tensorcfd.uninstaller",
-    "productName": "Uninstaller tensorHVAC-Pro-2025",
+    "productName": "Uninstaller tensorHVAC-Pro",
     "directories": {
       "output": "dist",
       "buildResources": "assets"
