@@ -7,7 +7,9 @@ const titleToId = {
   '#3 Remove Blender': 's-3',
   '#4 Remove tensorHVAC-Pro-2025 + shortcut': 's-4',
   '#5 Uninstall Tensor HVAC Licensing': 's-5',
-  '#6 Remove Licensing leftovers + shortcuts': 's-6'
+  '#6 Remove Licensing leftovers + shortcuts': 's-6',
+  '#7 Clean AppData Programs folders': 's-7',
+  '#8 Clean desktop shortcuts': 's-8'
 };
 
 function setStatus(id, status) {
@@ -20,36 +22,53 @@ function setStatus(id, status) {
   if (status === 'error') el.classList.add('error');
 }
 
-// Optional checklist inputs (will be null if you haven't added the checkboxes yet)
+// Checklist inputs (new ones included)
 const cbWSL = document.getElementById('cb-wsl');
 const cbPV  = document.getElementById('cb-paraview');
 const cbBL  = document.getElementById('cb-blender');
 const cbAPP = document.getElementById('cb-app');
 const cbLIC = document.getElementById('cb-licensing');
 const cbLO  = document.getElementById('cb-leftovers');
+const cbPROG = document.getElementById('cb-programs');
+const cbSC   = document.getElementById('cb-shortcuts');
+
+const btnAll = document.getElementById('checkAll');
+const btnNone = document.getElementById('uncheckAll');
+
+function setAll(val) {
+  if (cbWSL) cbWSL.checked = val;
+  if (cbPV)  cbPV.checked  = val;
+  if (cbBL)  cbBL.checked  = val;
+  if (cbAPP) cbAPP.checked = val;
+  if (cbLIC) cbLIC.checked = val;
+  if (cbLO)  cbLO.checked  = val;
+  if (cbPROG) cbPROG.checked = val;
+  if (cbSC)   cbSC.checked   = val;
+}
+if (btnAll) btnAll.addEventListener('click', () => setAll(true));
+if (btnNone) btnNone.addEventListener('click', () => setAll(false));
 
 btn.addEventListener('click', async () => {
   btn.disabled = true;
   logEl.textContent = '';
   Object.values(titleToId).forEach(id => setStatus(id, 'pending'));
 
-  // Build selections if checkboxes exist; else default to "all true" (back-compat)
   const selections = {
     wsl: cbWSL ? cbWSL.checked : true,
     paraview: cbPV ? cbPV.checked : true,
     blender: cbBL ? cbBL.checked : true,
     app: cbAPP ? cbAPP.checked : true,
     licensing: cbLIC ? cbLIC.checked : true,
-    leftovers: cbLO ? cbLO.checked : true
+    leftovers: cbLO ? cbLO.checked : true,
+    programs: cbPROG ? cbPROG.checked : true,    // NEW
+    shortcuts: cbSC ? cbSC.checked : true        // NEW
   };
 
   let result;
   try {
-    // Preferred (new) call shape: pass an options object
     result = await window.uninstaller.start({ confirm: false, selections });
   } catch (e) {
-    // Fallback for older preload that only accepts a boolean
-    // (Selections will be ignored in that mode.)
+    // fallback for older preload (ignores selections)
     result = await window.uninstaller.start(false);
   }
 

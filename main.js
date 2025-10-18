@@ -48,17 +48,14 @@ function runCmd(title, command, shell = true) {
         // Many deletions use 2>nul; treat nonzero as warning so the flow continues.
         sendLog(`\n[WARN] "${title}" exited with code ${code}. Continuing.\n`);
         sendStep(title, 'done');
-        resolve(); // continue anyway to keep uninstaller resilient
+        resolve();
       }
     });
   });
 }
 
 /**
- * Build a robust PowerShell that:
- * - Searches both 64-bit and 32-bit uninstall registry hives.
- * - Filters entries whose DisplayName starts with "Tensor HVAC Licensing" or Launcher.
- * - Executes UninstallString elevated and silently if possible.
+ * PowerShell to uninstall "Tensor HVAC Licensing" (and legacy Launcher names)
  */
 function getLicensingUninstallPS() {
   return `
@@ -101,8 +98,61 @@ foreach ($a in $apps) {
 `;
 }
 
+/** PowerShell to clean %LOCALAPPDATA%\Programs for tensorHVAC-related folders */
+function getProgramsCleanupPS() {
+  return `
+$ErrorActionPreference = 'SilentlyContinue'
+$base = Join-Path $env:LOCALAPPDATA 'Programs'
+if (-not (Test-Path $base)) {
+  Write-Output "Programs folder not found: $base"
+  exit 0
+}
+
+$patterns = @(
+  'tensorHVAC*',
+  'TensorHVAC*',
+  'Tensor HVAC*',
+  'tensorCFD*'
+)
+
+foreach ($pat in $patterns) {
+  $targets = Get-ChildItem -Path $base -Directory -Filter $pat -ErrorAction SilentlyContinue
+  foreach ($t in $targets) {
+    Write-Output "Removing: $($t.FullName)"
+    Remove-Item -LiteralPath $t.FullName -Recurse -Force -ErrorAction SilentlyContinue
+  }
+}
+`;
+}
+
+/** PowerShell to sweep all desktop shortcuts that match tensorHVAC */
+function getDesktopShortcutsCleanupPS() {
+  return `
+$ErrorActionPreference = 'SilentlyContinue'
+$desktop = Join-Path $env:USERPROFILE 'Desktop'
+if (-not (Test-Path $desktop)) {
+  Write-Output "Desktop not found: $desktop"
+  exit 0
+}
+
+$patterns = @(
+  '*tensor*hvac*.lnk',   # generic tensor+hvac match
+  'tensorHVAC-2025-Launcher.lnk',  # explicit new launcher name
+  '*Tensor*HVAC*Licens*.lnk',      # licensing shortcuts
+  '*tensorHVAC*2025*.lnk'          # legacy names
+)
+
+foreach ($pat in $patterns) {
+  $links = Get-ChildItem -Path $desktop -File -Filter $pat -ErrorAction SilentlyContinue
+  foreach ($l in $links) {
+    Write-Output "Deleting shortcut: $($l.FullName)"
+    Remove-Item -LiteralPath $l.FullName -Force -ErrorAction SilentlyContinue
+  }
+}
+`;
+}
+
 ipcMain.handle('start-uninstall', async (_e, opts = {}) => {
-  // Show confirm dialog unless caller sets confirm === true
   if (!opts.confirm) {
     const res = dialog.showMessageBoxSync(win, {
       type: 'warning',
@@ -116,7 +166,7 @@ ipcMain.handle('start-uninstall', async (_e, opts = {}) => {
     if (res !== 1) return { ok: false, canceled: true };
   }
 
-  // Backwards compatible defaults: if no selections are passed, uninstall everything
+  // Defaults: uninstall everything (back-compat). New flags: programs, shortcuts.
   const selections = {
     wsl: true,
     paraview: true,
@@ -124,6 +174,8 @@ ipcMain.handle('start-uninstall', async (_e, opts = {}) => {
     app: true,
     licensing: true,
     leftovers: true,
+    programs: true,   // NEW #7
+    shortcuts: true,  // NEW #8
     ...(opts.selections || {})
   };
 
@@ -135,11 +187,14 @@ ipcMain.handle('start-uninstall', async (_e, opts = {}) => {
   sendLog(`App/Shortcut (#4):${selections.app ? 'ON' : 'OFF'}\n`);
   sendLog(`Licensing (#5):   ${selections.licensing ? 'ON' : 'OFF'}\n`);
   sendLog(`Leftovers (#6):   ${selections.leftovers ? 'ON' : 'OFF'}\n`);
+  sendLog(`Programs (#7):    ${selections.programs ? 'ON' : 'OFF'}\n`);
+  sendLog(`Shortcuts (#8):   ${selections.shortcuts ? 'ON' : 'OFF'}\n`);
   sendLog('-----------------------------------\n\n');
 
   const licensingPS = getLicensingUninstallPS();
+  const programsPS = getProgramsCleanupPS();
+  const desktopPS  = getDesktopShortcutsCleanupPS();
 
-  // Build only the selected steps
   const steps = [];
   if (selections.wsl) {
     steps.push({
@@ -162,7 +217,6 @@ ipcMain.handle('start-uninstall', async (_e, opts = {}) => {
   if (selections.app) {
     steps.push({
       title: '#4 Remove tensorHVAC-Pro-2025 + shortcut',
-      // Also remove the new launcher explicitly, in addition to the wildcard
       cmd: `del /q "C:\\tensorCFD\\tensorHVAC-Pro-2025\\tensorHVAC-Pro-2025.exe" 2>nul & del /q "%USERPROFILE%\\Desktop\\*tensorHVAC*2025*.lnk" 2>nul & del /q "%USERPROFILE%\\Desktop\\tensorHVAC-2025-Launcher.lnk" 2>nul`
     });
   }
@@ -176,6 +230,18 @@ ipcMain.handle('start-uninstall', async (_e, opts = {}) => {
     steps.push({
       title: '#6 Remove Licensing leftovers + shortcuts',
       cmd: `rmdir /s /q "C:\\tensorCFD\\tensorHVAC-Pro-2025" 2>nul & del /q "%USERPROFILE%\\Desktop\\*Tensor*HVAC*Licens*.lnk" 2>nul & del /q "%USERPROFILE%\\Desktop\\tensorHVAC-2025-Launcher.lnk" 2>nul`
+    });
+  }
+  if (selections.programs) {
+    steps.push({
+      title: '#7 Clean AppData Programs folders',
+      cmd: `powershell -NoProfile -ExecutionPolicy Bypass -Command "${programsPS.replace(/"/g, '\\"')}"`
+    });
+  }
+  if (selections.shortcuts) {
+    steps.push({
+      title: '#8 Clean desktop shortcuts',
+      cmd: `powershell -NoProfile -ExecutionPolicy Bypass -Command "${desktopPS.replace(/"/g, '\\"')}"`
     });
   }
 
